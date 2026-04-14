@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Service Manager — Tibia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">⚔</span>
+        <span class="logo-text">Service<span class="logo-accent">Manager</span></span>
+      </div>
+      <div class="week-chip" id="week-chip"></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <button class="tab active" data-tab="admin" onclick="switchTab('admin')">
+        <span class="tab-icon">◈</span> Meu Painel
+      </button>
+      <button class="tab" data-tab="client" onclick="switchTab('client')">
+        <span class="tab-icon">◉</span> Visão do Cliente
+      </button>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div id="tab-admin" class="panel active">
+      <div class="panel-toolbar">
+        <div class="toolbar-left">
+          <h2 class="panel-title">Clientes da semana</h2>
+          <span class="client-count" id="client-count">0 clientes</span>
+        </div>
+        <button class="btn-add" id="add-toggle" onclick="toggleAddForm()">
+          <span id="add-toggle-icon">+</span> Novo cliente
+        </button>
+      </div>
+
+      <div id="add-form" class="add-form collapsed">
+        <p class="form-section-title">Novo cliente</p>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Nome do cliente</label>
+            <input id="f-client" type="text" placeholder="Ex: João Silva" />
+          </div>
+          <div class="form-group">
+            <label>Nome do personagem</label>
+            <input id="f-char" type="text" placeholder="Ex: Dark Knight IV" />
+          </div>
+        </div>
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>Level inicial</label>
+            <input id="f-lvl-start" type="number" placeholder="350" />
+          </div>
+          <div class="form-group">
+            <label>Level atual</label>
+            <input id="f-lvl-now" type="number" placeholder="362" />
+          </div>
+          <div class="form-group">
+            <label>Horas caçadas</label>
+            <input id="f-hours" type="number" step="0.5" placeholder="12" />
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Valor por hora (R$)</label>
+            <input id="f-rate" type="number" placeholder="15" />
+          </div>
+          <div class="form-group form-group-btn">
+            <button class="btn-primary" onclick="addClient()">Adicionar cliente</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="clients-list"></div>
+    </div>
+
+    <!-- CLIENT VIEW PANEL -->
+    <div id="tab-client" class="panel">
+      <div class="panel-toolbar">
+        <div class="toolbar-left">
+          <h2 class="panel-title">Resumo para cliente</h2>
+        </div>
+      </div>
+      <div class="selector-wrap">
+        <select id="client-selector" onchange="renderClientView()">
+          <option value="">— Selecionar cliente —</option>
+        </select>
+      </div>
+      <div id="client-view"></div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
