@@ -111,6 +111,8 @@ Personagem: ${c.char}
 💰 Valor por hora: R$ ${rate}
 💵 Total a pagar: R$ ${total}
 ━━━━━━━━━━━━━━━━━━━━━━
+🔑 PIX: dd319af3-da68-4f30-b90b-8511f06ad34d
+━━━━━━━━━━━━━━━━━━━━━━
 Obrigado pela confiança! 🐉`;
 
   navigator.clipboard.writeText(txt)
