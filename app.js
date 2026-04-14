@@ -77,18 +77,16 @@ function updateField(id, field, val) {
   else if (['hours', 'rate'].includes(field)) c[field] = parseFloat(val) || 0;
   else c[field] = val;
   save();
-  renderMetrics(id);
+  refreshMetrics(id);
 }
 
-function renderMetrics(id) {
+function refreshMetrics(id) {
   const c = clients.find(c => c.id === id);
   if (!c) return;
   const lvls = c.lvlNow - c.lvlStart;
   const total = (c.hours * c.rate).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
   const el = document.getElementById('metrics-' + id);
   if (!el) return;
-
   el.querySelector('.m-hours').textContent = c.hours + 'h';
   el.querySelector('.m-lvls').textContent = (lvls > 0 ? '+' : '') + lvls;
   el.querySelector('.m-total').textContent = 'R$ ' + total;
@@ -140,15 +138,15 @@ function renderClients() {
     const total = (c.hours * c.rate).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     return `
-    <div class="client-card">
+    <div class="client-card" data-id="${c.id}">
       <div class="card-header">
         <div class="card-identity">
           <p class="card-name">${c.name}</p>
           <p class="card-char">${c.char}</p>
         </div>
         <div class="card-actions">
-          <button class="btn-copy" onclick="copyFechamento(${c.id})">⎘ Copiar fechamento</button>
-          <button class="btn-danger" onclick="deleteClient(${c.id})">✕</button>
+          <button class="btn-copy" data-action="copy" data-id="${c.id}">⎘ Copiar fechamento</button>
+          <button class="btn-danger" data-action="delete" data-id="${c.id}">✕</button>
         </div>
       </div>
 
@@ -172,19 +170,19 @@ function renderClients() {
       <div class="card-fields">
         <div class="form-group">
           <label>Level inicial</label>
-          <input type="number" value="${c.lvlStart}" onchange="updateField(${c.id},'lvlStart',this.value)" />
+          <input type="number" data-field="lvlStart" data-id="${c.id}" value="${c.lvlStart}" />
         </div>
         <div class="form-group">
           <label>Level atual</label>
-          <input type="number" value="${c.lvlNow}" onchange="updateField(${c.id},'lvlNow',this.value)" />
+          <input type="number" data-field="lvlNow" data-id="${c.id}" value="${c.lvlNow}" />
         </div>
         <div class="form-group">
           <label>Horas caçadas</label>
-          <input type="number" step="0.5" value="${c.hours}" onchange="updateField(${c.id},'hours',this.value)" />
+          <input type="number" step="0.5" data-field="hours" data-id="${c.id}" value="${c.hours}" />
         </div>
         <div class="form-group">
           <label>Valor/hora (R$)</label>
-          <input type="number" value="${c.rate}" onchange="updateField(${c.id},'rate',this.value)" />
+          <input type="number" data-field="rate" data-id="${c.id}" value="${c.rate}" />
         </div>
       </div>
     </div>`;
@@ -265,6 +263,23 @@ function renderClientView() {
       </div>
     </div>`;
 }
+
+// Delegação de eventos — um único listener para toda a página
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const id = parseInt(btn.dataset.id);
+  if (btn.dataset.action === 'copy') copyFechamento(id);
+  if (btn.dataset.action === 'delete') deleteClient(id);
+});
+
+document.addEventListener('change', function(e) {
+  const input = e.target.closest('input[data-field]');
+  if (!input) return;
+  const id = parseInt(input.dataset.id);
+  const field = input.dataset.field;
+  updateField(id, field, input.value);
+});
 
 // Init
 document.getElementById('week-chip').textContent = getWeekRange();
