@@ -29,6 +29,9 @@
       <button class="tab" data-tab="client" onclick="switchTab('client')">
         <span class="tab-icon">◉</span> Visão do Cliente
       </button>
+      <button class="tab" data-tab="planilha" onclick="switchTab('planilha')">
+        <span class="tab-icon">▦</span> Planilha
+      </button>
     </div>
 
     <!-- ADMIN PANEL -->
@@ -97,10 +100,58 @@
       </div>
       <div id="client-view"></div>
     </div>
+
+    <!-- PLANILHA PANEL -->
+    <div id="tab-planilha" class="panel">
+      <div class="panel-toolbar">
+        <div class="toolbar-left">
+          <h2 class="panel-title">Planilha de serviços</h2>
+        </div>
+        <button class="btn-add" id="btn-add-row" onclick="toggleAddRow()">+ Nova entrada</button>
+      </div>
+
+      <div id="add-row-form" class="add-form" style="display:none">
+        <p class="form-section-title">Nova entrada</p>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Cliente</label>
+            <input id="p-cliente" type="text" placeholder="Ex: Felps" />
+          </div>
+          <div class="form-group">
+            <label>Observação</label>
+            <input id="p-obs" type="text" placeholder="Ex: coins, hunt extra..." />
+          </div>
+        </div>
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label>Horas</label>
+            <input id="p-horas" type="number" min="0" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label>Minutos</label>
+            <input id="p-minutos" type="number" min="0" max="59" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label>Custo por hora (R$)</label>
+            <input id="p-custo" type="number" step="0.5" placeholder="17" />
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>Rubini Coins (RC)</label>
+            <input id="p-rc" type="number" placeholder="0" />
+          </div>
+          <div class="form-group form-group-btn">
+            <button class="btn-primary" onclick="addPlanilhaRow()">Adicionar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="planilha-wrap"></div>
+    </div>
   </main>
 
   <div class="toast" id="toast"></div>
-
   <script src="app.js"></script>
 </body>
 </html>
