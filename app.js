@@ -1,8 +1,14 @@
 let clients = JSON.parse(localStorage.getItem('tibia_clients') || '[]');
+let planilha = JSON.parse(localStorage.getItem('tibia_planilha') || '[]');
 let addFormOpen = false;
+let addRowOpen = false;
 
 function save() {
   localStorage.setItem('tibia_clients', JSON.stringify(clients));
+}
+
+function savePlanilha() {
+  localStorage.setItem('tibia_planilha', JSON.stringify(planilha));
 }
 
 function getWeekRange() {
@@ -28,6 +34,7 @@ function switchTab(tab) {
   document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   if (tab === 'client') { renderSelector(); renderClientView(); }
+  if (tab === 'planilha') renderPlanilha();
 }
 
 function toggleAddForm() {
@@ -264,21 +271,194 @@ function renderClientView() {
     </div>`;
 }
 
-// Delegação de eventos — um único listener para toda a página
+// ─── PLANILHA ────────────────────────────────────────────
+
+function rcToReais(rc) {
+  // 1 RC = R$ 0,09 (valor aproximado de mercado — ajustável)
+  return rc * 0.09;
+}
+
+function toggleAddRow() {
+  addRowOpen = !addRowOpen;
+  document.getElementById('add-row-form').style.display = addRowOpen ? 'block' : 'none';
+  document.getElementById('btn-add-row').textContent = addRowOpen ? '✕ Fechar' : '+ Nova entrada';
+}
+
+function addPlanilhaRow() {
+  const cliente = document.getElementById('p-cliente').value.trim();
+  const horas = parseFloat(document.getElementById('p-horas').value) || 0;
+  const minutos = parseInt(document.getElementById('p-minutos').value) || 0;
+  const custoHora = parseFloat(document.getElementById('p-custo').value) || 0;
+  const rc = parseInt(document.getElementById('p-rc').value) || 0;
+  const obs = document.getElementById('p-obs').value.trim();
+
+  if (!cliente) { toast('⚠ Informe o nome do cliente.'); return; }
+
+  const totalHoras = horas + minutos / 60;
+  const totalReais = totalHoras * custoHora;
+
+  planilha.push({ id: Date.now(), cliente, horas, minutos, custoHora, rc, obs, totalReais });
+  savePlanilha();
+  renderPlanilha();
+
+  ['p-cliente','p-horas','p-minutos','p-custo','p-rc','p-obs'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+
+  toggleAddRow();
+  toast('✓ Entrada adicionada!');
+}
+
+function deletePlanilhaRow(id) {
+  planilha = planilha.filter(r => r.id !== id);
+  savePlanilha();
+  renderPlanilha();
+  toast('Entrada removida.');
+}
+
+function updatePlanilhaField(id, field, val) {
+  const row = planilha.find(r => r.id === id);
+  if (!row) return;
+  if (['horas', 'custoHora'].includes(field)) row[field] = parseFloat(val) || 0;
+  else if (['minutos', 'rc'].includes(field)) row[field] = parseInt(val) || 0;
+  else row[field] = val;
+
+  const totalHoras = row.horas + row.minutos / 60;
+  row.totalReais = totalHoras * row.custoHora;
+  savePlanilha();
+  refreshPlanilhaRow(id);
+}
+
+function refreshPlanilhaRow(id) {
+  const row = planilha.find(r => r.id === id);
+  if (!row) return;
+  const el = document.getElementById('pr-' + id);
+  if (!el) return;
+  const totalHoras = row.horas + row.minutos / 60;
+  el.querySelector('.pr-total-reais').textContent = 'R$ ' + row.totalReais.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  el.querySelector('.pr-total-rc').textContent = row.rc > 0 ? row.rc.toLocaleString('pt-BR') + ' RC' : '—';
+  el.querySelector('.pr-hm').textContent = formatHM(row.horas, row.minutos);
+  refreshPlanilhaTotals();
+}
+
+function formatHM(h, m) {
+  if (!h && !m) return '—';
+  if (h && m) return h + 'h ' + m + 'min';
+  if (h) return h + 'h';
+  return m + 'min';
+}
+
+function refreshPlanilhaTotals() {
+  const totalR = planilha.reduce((s, r) => s + r.totalReais, 0);
+  const totalRC = planilha.reduce((s, r) => s + r.rc, 0);
+  const totalH = planilha.reduce((s, r) => s + r.horas + r.minutos / 60, 0);
+  const hh = Math.floor(totalH);
+  const mm = Math.round((totalH - hh) * 60);
+
+  const el = document.getElementById('planilha-totals');
+  if (!el) return;
+  el.querySelector('.pt-horas').textContent = formatHM(hh, mm);
+  el.querySelector('.pt-reais').textContent = 'R$ ' + totalR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  el.querySelector('.pt-rc').textContent = totalRC > 0 ? totalRC.toLocaleString('pt-BR') + ' RC' : '—';
+}
+
+function renderPlanilha() {
+  const wrap = document.getElementById('planilha-wrap');
+
+  const totalR = planilha.reduce((s, r) => s + r.totalReais, 0);
+  const totalRC = planilha.reduce((s, r) => s + r.rc, 0);
+  const totalH = planilha.reduce((s, r) => s + r.horas + r.minutos / 60, 0);
+  const hh = Math.floor(totalH);
+  const mm = Math.round((totalH - hh) * 60);
+
+  if (!planilha.length) {
+    wrap.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>Nenhuma entrada ainda.</p><p>Clique em "+ Nova entrada" para começar.</p></div>';
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div class="pl-table-wrap">
+      <table class="pl-table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Horas / Min</th>
+            <th>Custo/hora</th>
+            <th>Total (R$)</th>
+            <th>Total (RC)</th>
+            <th>Obs</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${planilha.map(r => `
+            <tr id="pr-${r.id}">
+              <td><input class="pl-input" data-pl-field="cliente" data-pl-id="${r.id}" value="${r.cliente}" /></td>
+              <td>
+                <div style="display:flex;gap:4px;align-items:center">
+                  <input class="pl-input pl-input-sm" type="number" min="0" data-pl-field="horas" data-pl-id="${r.id}" value="${r.horas}" placeholder="h" />
+                  <span style="color:var(--text-3);font-size:11px">h</span>
+                  <input class="pl-input pl-input-sm" type="number" min="0" max="59" data-pl-field="minutos" data-pl-id="${r.id}" value="${r.minutos || ''}" placeholder="min" />
+                  <span style="color:var(--text-3);font-size:11px">min</span>
+                </div>
+                <span class="pr-hm" style="font-size:11px;color:var(--text-3)">${formatHM(r.horas, r.minutos)}</span>
+              </td>
+              <td><input class="pl-input pl-input-sm" type="number" step="0.5" data-pl-field="custoHora" data-pl-id="${r.id}" value="${r.custoHora}" /></td>
+              <td><span class="pr-total-reais green" style="font-family:monospace;font-weight:700">R$ ${r.totalReais.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></td>
+              <td><input class="pl-input pl-input-sm" type="number" data-pl-field="rc" data-pl-id="${r.id}" value="${r.rc || ''}" placeholder="0" /><span class="pr-total-rc" style="font-size:11px;color:var(--text-3);display:block">${r.rc > 0 ? r.rc.toLocaleString('pt-BR') + ' RC' : '—'}</span></td>
+              <td><input class="pl-input" data-pl-field="obs" data-pl-id="${r.id}" value="${r.obs || ''}" placeholder="—" /></td>
+              <td><button class="btn-danger" data-pl-action="delete" data-pl-id="${r.id}">✕</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pl-totals" id="planilha-totals">
+      <div class="pl-total-item">
+        <span class="pl-total-label">Total de horas</span>
+        <span class="pl-total-val pt-horas">${formatHM(hh, mm)}</span>
+      </div>
+      <div class="pl-total-item">
+        <span class="pl-total-label">Total a receber (R$)</span>
+        <span class="pl-total-val green pt-reais">R$ ${totalR.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+      </div>
+      <div class="pl-total-item">
+        <span class="pl-total-label">Total em RC</span>
+        <span class="pl-total-val accent pt-rc">${totalRC > 0 ? totalRC.toLocaleString('pt-BR') + ' RC' : '—'}</span>
+      </div>
+    </div>`;
+}
+
+// ─── EVENT DELEGATION ────────────────────────────────────
+
 document.addEventListener('click', function(e) {
+  // Admin tab
   const btn = e.target.closest('[data-action]');
-  if (!btn) return;
-  const id = parseInt(btn.dataset.id);
-  if (btn.dataset.action === 'copy') copyFechamento(id);
-  if (btn.dataset.action === 'delete') deleteClient(id);
+  if (btn) {
+    const id = parseInt(btn.dataset.id);
+    if (btn.dataset.action === 'copy') copyFechamento(id);
+    if (btn.dataset.action === 'delete') deleteClient(id);
+  }
+  // Planilha tab
+  const plBtn = e.target.closest('[data-pl-action]');
+  if (plBtn) {
+    const id = parseInt(plBtn.dataset.plId);
+    if (plBtn.dataset.plAction === 'delete') deletePlanilhaRow(id);
+  }
 });
 
 document.addEventListener('change', function(e) {
+  // Admin fields
   const input = e.target.closest('input[data-field]');
-  if (!input) return;
-  const id = parseInt(input.dataset.id);
-  const field = input.dataset.field;
-  updateField(id, field, input.value);
+  if (input) {
+    updateField(parseInt(input.dataset.id), input.dataset.field, input.value);
+  }
+  // Planilha fields
+  const plInput = e.target.closest('[data-pl-field]');
+  if (plInput) {
+    updatePlanilhaField(parseInt(plInput.dataset.plId), plInput.dataset.plField, plInput.value);
+  }
 });
 
 // Init
